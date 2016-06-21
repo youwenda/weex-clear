@@ -1,0 +1,16 @@
+{
+  "name": "weex-clear",
+  "version": "1.0.0",
+  "description": "weex版clear",
+  "main": "index.we",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "weex",
+    "html5",
+    "clear"
+  ],
+  "author": "金台 <jintai.yzq@taobao.com>",
+  "license": "ISC"
+}

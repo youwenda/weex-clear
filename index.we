@@ -1,0 +1,184 @@
+<we-element name="collection">
+  <template>
+    <div>
+      <div id="J_top_item" class="item top-item" style="display:none;">
+        <div class="slider top-slider">
+          <div class="inner">
+            <text id="J_top_title" class="title">Pull to Create List</text>
+            <text id="J_top_count" class="count">0</text>
+          </div>
+        </div>
+      </div>
+      <div class="item" repeat="{{collection}}">
+        <div class="slider">
+          <div class="inner">
+            <text class="title">{{name}}</text>
+            <text class="count">{{items.length}}</text>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <style>
+    .item {
+      height: 145;
+      line-height: 145;
+      color: #fff;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-weight: bold;
+    }
+
+    .slider {
+      background-color: #1780F7;
+      position: relative;
+      z-index: 1;
+    }
+
+    .inner {
+      height: 145;
+      -webkit-transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0);
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .title {
+      position: absolute;
+      top: 0;
+      left: 28.125;
+      font-size: 42;
+    }
+
+    .count {
+      position: absolute;
+      width: 145;
+      height: 145;
+      right: 0;
+      top: -1px;
+      background-color: rgba(255, 255, 255, 0.15);
+      text-align: center;
+      font-size: 42;
+    }
+
+    .top-item {
+      opacity: 0.3;
+      -webkit-perspective-origin: bottom center;
+      perspective-origin: bottom center;
+      text-shadow: 0 1px 1px;
+    }
+
+    .top-slider {
+      -webkit-transform-origin: bottom center;
+      transform-origin: bottom center;
+    }
+
+  </style>
+
+  <script>
+    module.exports = {
+      data: {
+        collection: null
+      },
+      ready: function() {
+        console.log('collection combo ready');
+      }
+    }
+  </script>
+
+</we-element>
+
+<template>
+  <list id="J_wrapper" class="wrapper" onverticalpanmove="verticalpanmove" onscrollend="scrollend">
+    <collection id="J_collection" collection="{{collections}}"></collection>
+  </list>
+</template>
+
+<style>
+  .wrapper {
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    overflow: hidden;
+  }
+</style>
+
+<script>
+var env = require('./include/env');
+var pullingDown;
+var pastPullDownThreshold;
+
+module.exports = {
+  data: {
+    collections: [{
+      name: 'How to Use',
+      items: [{
+        name: 'Swipe to the right to complete'
+      }, {
+        name: 'Swipe to the left to delete'
+      }, {
+        name: 'Tap and hold to pick me up'
+      }, {
+        name: 'Pull down to create an item'
+      }, {
+        name: 'Pull down more to go back'
+      }, {
+        name: 'Pull up to clear'
+      }]
+    }, {
+      name: 'This is a Demo',
+      items: []
+    }, {
+      name: 'Test',
+      items: []
+    }, {
+      name: 'This is a Demo',
+      items: []
+    }, {
+      name: 'Test',
+      items: []
+    }]
+  },
+  methods: {
+    verticalpanmove(e) {
+      if (e.displacementY) {
+        if (!pullingDown) {
+          pullingDown = true;
+          this._topItemEl.setStyle('display', 'block');
+        }
+        if (e.displacementY <= env.itemH) {
+          if (pastPullDownThreshold) {
+            pastPullDownThreshold = false;
+            this._topTitleEl.setAttr('value', 'Pull to create List');
+          }
+          var pct = e.displacementY / env.itemH;
+          var r = Math.max(0, (1 - pct) * 90);
+          var slider = this._topItemEl.children[0];
+          slider.setStyle(env.transformProperty, 'rotateX(' + r + 'deg)');
+          slider.setStyle('opacity', pct / 2 + .5)
+        }
+
+      } else {
+        pullingDown = false;
+        this._topItemEl.setStyle('display', 'none');
+      }
+    },
+    scrollend(e) {
+      if (pullingDown) {
+        // this._topItemEl.setStyle('display', 'none');
+        pullingDown = false;
+      }
+    }
+  },
+  ready() {
+    this._collectionVm = this.$vm('J_collection');
+    this._topItemEl = this._collectionVm.$el('J_top_item');
+    this._topTitleEl = this._collectionVm.$el('J_top_title');
+
+    console.log('index ready', this._topItemEl);
+  }
+};
+</script>
