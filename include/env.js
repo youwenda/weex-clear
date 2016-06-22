@@ -1,6 +1,6 @@
 var hasTouch = ('ontouchstart' in window);
 var Env = {
-  itemH: 145,
+  itemH: 65,
   hasTouch: hasTouch,
   event: (function(f) {
     return f ? {
