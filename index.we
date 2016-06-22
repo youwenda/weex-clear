@@ -11,12 +11,12 @@
       </div>
       <div if="{{newItemState}}" class="item edit">
         <div class="slider top-slider">
-          <div class="inner">
-            <input id="J_new_item" />
+          <div class="inner" style="flex-direction:row;align-items:center;">
+            <input id="J_item_input" class="input" />
           </div>
         </div>
       </div>
-      <div class="item {{shadeable ? 'shade' : ''}} {{items.length ? '':'empty'}}" repeat="{{collection}}">
+      <div class="item {{!items.length ? 'empty' : ''}}" repeat="{{collection}}" style="opacity:{{newItemState?0.15:1}}">
         <div class="slider">
           <div class="inner">
             <text class="title">{{name}}</text>
@@ -38,21 +38,13 @@
 
       -webkit-transform-origin: center center;
       transform-origin: center center;
-
-      -webkit-transition: -webkit-transform 0.3s cubic-bezier(0.67, 0.18, 0.3, 0.86), opacity 0.3s cubic-bezier(0.67, 0.18, 0.3, 0.86);
-
-      transition: transform 0.3s cubic-bezier(0.67, 0.18, 0.3, 0.86), opacity 0.3s cubic-bezier(0.67, 0.18, 0.3, 0.86);
     }
 
     .slider {
       height: 65;
-
       background-color: #1780F7;
       position: relative;
       z-index: 1;
-
-      -webkit-transition: -webkit-transform background-color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86), color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86);
-      transition: transform background-color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86), color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86);
     }
 
     .inner {
@@ -97,6 +89,19 @@
       opacity: 1;
     }
 
+    .input {
+      width:750;
+      padding-left:20;
+      height:50;
+      line-height:50;
+      font-size:20;
+      color:#fff;
+      font-weight:bold;
+      background-color:#1780F7;
+      outline:none;
+      border:none;
+    }
+
     .top-item {
       position: absolute;
       left: 0;
@@ -134,7 +139,7 @@
 </we-element>
 
 <template>
-  <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend">
+  <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend" ontap="tap">
     <collection id="J_collection" collection="{{collections}}" new-item-state="{{newItemState}}"></collection>
   </list>
 </template>
@@ -163,7 +168,6 @@ module.exports = {
     newItemState: null,
     collections: [{
       name: 'How to Use',
-      shadeable: null,
       items: [{
         name: 'Swipe to the right to complete'
       }, {
@@ -179,23 +183,25 @@ module.exports = {
       }]
     }, {
       name: 'This is a Demo',
-      shadeable: null,
       items: []
     }, {
       name: 'Test',
-      shadeable: null,
       items: []
     }, {
       name: 'This is a Demo',
-      shadeable: null,
       items: []
     }, {
       name: 'Test',
-      shadeable: null,
       items: []
     }]
   },
   methods: {
+    tap(e) {
+      console.log(e, this._itemInputEl);
+      if (triggerNewItemState) {
+        this.newItemState = triggerNewItemState = null;
+      }
+    },
     scroll(e) {
       if (e.scrollTop < 0) {
         if (!pullingDown) {
@@ -222,27 +228,21 @@ module.exports = {
 
     },
     scrollend(e) {
-      console.log('scrollend', this.collections);
       if (pullingDown) {
         pullingDown = false;
         this._topItemEl.setStyle('display', 'none');
       }
-
       if (triggerNewItemState) {
         // 设置阴影效果
-        this.collections.forEach(function(v) {
-          v.shadeable = true;
-        });
         this.newItemState = true;
       }
-
     }
   },
   ready() {
     this._collectionVm = this.$vm('J_collection');
     this._topItemEl = this._collectionVm.$el('J_top_item');
     this._topTitleEl = this._collectionVm.$el('J_top_title');
-
+    this._itemInputEl = this._collectionVm.$el('J_item_input');
     console.log('index ready', this._topItemEl);
   }
 };
