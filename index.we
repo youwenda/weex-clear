@@ -9,7 +9,14 @@
           </div>
         </div>
       </div>
-      <div class="item" repeat="{{collection}}">
+      <div if="{{newItemState}}" class="item edit">
+        <div class="slider top-slider">
+          <div class="inner">
+            <input id="J_new_item" />
+          </div>
+        </div>
+      </div>
+      <div class="item {{shadeable ? 'shade' : ''}} {{items.length ? '':'empty'}}" repeat="{{collection}}">
         <div class="slider">
           <div class="inner">
             <text class="title">{{name}}</text>
@@ -73,13 +80,29 @@
       font-size: 20;
     }
 
+    .shade {
+      opacity: .15;
+    }
+    .empty {
+      color: rgba(255, 255, 255, 0.5);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.13);
+    }
+    .edit {
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      height: 65;
+      z-index: 3;
+      opacity: 1;
+    }
+
     .top-item {
       position: absolute;
       left: 0;
       top: -65;
       right: 0;
       z-index: 2;
-      opacity: 0.5;
       text-shadow: 0 1px 1px;
 
       -webkit-perspective: 400;
@@ -99,6 +122,7 @@
   <script>
     module.exports = {
       data: {
+        newItemState: null,
         collection: null
       },
       ready: function() {
@@ -110,8 +134,8 @@
 </we-element>
 
 <template>
-  <list id="J_wrapper" class="wrapper" onpulldown="pulldown" onscrollend="scrollend">
-    <collection id="J_collection" collection="{{collections}}"></collection>
+  <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend">
+    <collection id="J_collection" collection="{{collections}}" new-item-state="{{newItemState}}"></collection>
   </list>
 </template>
 
@@ -132,11 +156,14 @@
 var env = require('./include/env');
 var pullingDown;
 var pastPullDownThreshold;
+var triggerNewItemState;
 
 module.exports = {
   data: {
+    newItemState: null,
     collections: [{
       name: 'How to Use',
+      shadeable: null,
       items: [{
         name: 'Swipe to the right to complete'
       }, {
@@ -152,44 +179,63 @@ module.exports = {
       }]
     }, {
       name: 'This is a Demo',
+      shadeable: null,
       items: []
     }, {
       name: 'Test',
+      shadeable: null,
       items: []
     }, {
       name: 'This is a Demo',
+      shadeable: null,
       items: []
     }, {
       name: 'Test',
+      shadeable: null,
       items: []
     }]
   },
   methods: {
-    pulldown(e) {
-      if (!pullingDown) {
-        pullingDown = true;
-        this._topItemEl.setStyle('display', 'block');
-      }
-      if (e.boundaryOffset <= env.itemH) {
-        if (pastPullDownThreshold) {
-          pastPullDownThreshold = false;
-          this._topTitleEl.setAttr('value', 'Pull to create List');
+    scroll(e) {
+      if (e.scrollTop < 0) {
+        if (!pullingDown) {
+          pullingDown = true;
+          this._topItemEl.setStyle('display', 'block');
         }
-        var pct = e.boundaryOffset / env.itemH;
-        var r = Math.max(0, (1 - pct) * 90);
-        var slider = this._topItemEl.children[0];
-        slider.setStyle(env.transformProperty, 'rotateX(' + r + 'deg)');
-        slider.setStyle('opacity', pct / 2 + .5)
-      } else {
-        pastPullDownThreshold = true;
-        this._topTitleEl.setAttr('value', 'Release to Create List');
+        var displacementY = Math.abs(e.scrollTop);
+        if (displacementY <= env.itemH) {
+          if (pastPullDownThreshold) {
+            pastPullDownThreshold = false;
+            this._topTitleEl.setAttr('value', 'Pull to create List');
+          }
+          var pct = displacementY / env.itemH;
+          var r = Math.max(0, (1 - pct) * 90);
+          var slider = this._topItemEl.children[0];
+          slider.setStyle(env.transformProperty, 'rotateX(' + r + 'deg)');
+          slider.setStyle('opacity', pct / 2 + .5);
+        } else {
+          pastPullDownThreshold = true;
+          triggerNewItemState = true;
+          this._topTitleEl.setAttr('value', 'Release to Create List');
+        }
       }
+
     },
     scrollend(e) {
+      console.log('scrollend', this.collections);
       if (pullingDown) {
         pullingDown = false;
         this._topItemEl.setStyle('display', 'none');
       }
+
+      if (triggerNewItemState) {
+        // 设置阴影效果
+        this.collections.forEach(function(v) {
+          v.shadeable = true;
+        });
+        this.newItemState = true;
+      }
+
     }
   },
   ready() {
@@ -197,7 +243,7 @@ module.exports = {
     this._topItemEl = this._collectionVm.$el('J_top_item');
     this._topTitleEl = this._collectionVm.$el('J_top_title');
 
-    console.log('index ready');
+    console.log('index ready', this._topItemEl);
   }
 };
 </script>
