@@ -9,8 +9,8 @@
           </div>
         </div>
       </div>
-      <div class="item {{!items.length ? 'empty' : ''}}" repeat="{{collection}}">
-        <div class="slider" onhorizontalpanmove="horizontalpanmove($event,$index)" onpanend="panend($event,$index)">
+      <div class="item {{!items.length ? 'empty' : ''}}" repeat="{{collections}}">
+        <div class="slider" onhorizontalpanmove="horizontalpanmove($event,$index)" onpanend="panend($event,$index)" ontap="openTodoItems($event,$index)">
           <div class="inner">
             <text class="title">{{name}}</text>
             <text class="count">{{items.length}}</text>
@@ -123,7 +123,7 @@
 
     module.exports = {
       data: {
-        collection: null
+        collections: null
       },
       methods: {
         getTransformOffset: function(dom) {
@@ -156,7 +156,7 @@
         horizontalpanmove(e, index) {
           var tx = e.displacementX;
           var o, image;
-          if (!this.collection[index].items.length) {
+          if (!this.collections[index].items.length) {
             return;
           }
           // dragging to right
@@ -220,7 +220,7 @@
               cancelTitle: operation.cancel
             }, (e) => {
               if (e === operation.ok) {
-                this.collection[index].items = [];
+                this.collections[index].items = [];
               }
             });
           } else if (action === actions[1]) {
@@ -232,7 +232,7 @@
               cancelTitle: operation.cancel
             }, (e) => {
               if (e === operation.ok) {
-                this.collection.splice(index, 1);
+                this.collections.splice(index, 1);
               }
             });
           }
@@ -240,7 +240,7 @@
         }
       },
       ready: function() {
-        console.log('collection combo ready');
+        console.log('collections combo ready');
       }
     }
   </script>
@@ -256,7 +256,7 @@
       </div>
     </div>
     <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend">
-      <collection id="J_collection" collection="{{collections}}"></collection>
+      <collection id="J_collection" collections="{{collections}}"></collection>
     </list>
   </div>
 </template>
