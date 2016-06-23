@@ -10,7 +10,7 @@
         </div>
       </div>
       <div class="item {{!items.length ? 'empty' : ''}}" repeat="{{collection}}">
-        <div class="slider" onhorizontalpanmove="horizontalpanmove($event, this.$index)" onpanend="panend($event, this.$index)">
+        <div class="slider" onhorizontalpanmove="horizontalpanmove($event,$index)" onpanend="panend($event,$index)">
           <div class="inner">
             <text class="title">{{name}}</text>
             <text class="count">{{items.length}}</text>
@@ -191,6 +191,11 @@
           var currentTarget = e.currentTarget;
           var transform = this.getTransformOffset(currentTarget);
           var image = transform.x >= 0 ? currentTarget.nextSibling : currentTarget.nextSibling.nextSibling;
+
+          if (!action || !direction) {
+            return;
+          }
+
           // 动画
           animation.transition(e.target, {
             styles: {
@@ -207,6 +212,8 @@
           });
 
           if (action === actions[0]) {
+            action = null;
+            direction = null;
             modal.confirm({
               message: 'Are you sure you want to complete all your items in this list?',
               okTitle: operation.ok,
@@ -217,6 +224,8 @@
               }
             });
           } else if (action === actions[1]) {
+            action = null;
+            direction = null;
             modal.confirm({
               message: 'Are you sure you want to delete the entire list?',
               okTitle: operation.ok,
