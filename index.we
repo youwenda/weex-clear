@@ -9,7 +9,7 @@
           </div>
         </div>
       </div>
-      <div class="item {{!items.length ? 'empty' : ''}}" repeat="{{collections}}">
+      <div if="{{!todoItems}}" class="item {{!items.length ? 'empty' : ''}}" repeat="{{collections}}">
         <div class="slider" onhorizontalpanmove="horizontalpanmove($event,$index)" onpanend="panend($event,$index)" ontap="openTodoItems($event,$index)">
           <div class="inner">
             <text class="title">{{name}}</text>
@@ -19,6 +19,19 @@
         <image src="https://gw.alicdn.com/tps/TB1AGVDKFXXXXXbaXXXXXXXXXXX-124-124.png" class="icon check"></image>
         <image src="https://gw.alicdn.com/tps/TB1jodTKFXXXXcZXpXXXXXXXXXX-124-124.png" class="icon cross"></image>
       </div>
+
+      <div if="{{todoItems}}">
+        <div class="item" repeat="{{todoItems}}">
+          <div class="slider" style="background-color:{{'hsl(' + (353+$index*Math.min(70/todoItems.length,10)) + ',95%,' + ($index==0 ? '48%':'53%') + ')'}}">
+            <div class="inner">
+              <text class="title">{{name}}</text>
+            </div>
+          </div>
+          <image src="https://gw.alicdn.com/tps/TB1AGVDKFXXXXXbaXXXXXXXXXXX-124-124.png" class="icon check"></image>
+          <image src="https://gw.alicdn.com/tps/TB1jodTKFXXXXcZXpXXXXXXXXXX-124-124.png" class="icon cross"></image>
+        </div>
+      </div>
+
     </div>
   </template>
 
@@ -51,7 +64,7 @@
     .title {
       position: absolute;
       top: 0;
-      left: 12;
+      left: 15;
       font-size: 20;
     }
 
@@ -123,6 +136,7 @@
 
     module.exports = {
       data: {
+        todoItems: null,
         collections: null
       },
       methods: {
@@ -152,6 +166,9 @@
             }
           }
           return offset
+        },
+        openTodoItems(e, index) {
+          this.todoItems = this.collections[index].items || [];
         },
         horizontalpanmove(e, index) {
           var tx = e.displacementX;
