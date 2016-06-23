@@ -9,20 +9,15 @@
           </div>
         </div>
       </div>
-      <div if="{{newItemState}}" class="item edit">
-        <div class="slider top-slider">
-          <div class="inner" style="flex-direction:row;align-items:center;">
-            <input id="J_item_input" class="input" />
-          </div>
-        </div>
-      </div>
-      <div class="item {{!items.length ? 'empty' : ''}}" repeat="{{collection}}" style="opacity:{{newItemState?0.15:1}}">
-        <div class="slider">
+      <div class="item {{!items.length ? 'empty' : ''}}" repeat="{{collection}}">
+        <div class="slider" onhorizontalpanmove="horizontalpanmove($event, this.$index)" onpanend="panend($event, this.$index)">
           <div class="inner">
             <text class="title">{{name}}</text>
             <text class="count">{{items.length}}</text>
           </div>
         </div>
+        <image src="https://gw.alicdn.com/tps/TB1AGVDKFXXXXXbaXXXXXXXXXXX-124-124.png" class="icon check"></image>
+        <image src="https://gw.alicdn.com/tps/TB1jodTKFXXXXcZXpXXXXXXXXXX-124-124.png" class="icon cross"></image>
       </div>
     </div>
   </template>
@@ -71,37 +66,10 @@
       text-align: center;
       font-size: 20;
     }
-
-    .shade {
-      opacity: .15;
-    }
     .empty {
       color: rgba(255, 255, 255, 0.5);
       text-shadow: 0 1px 1px rgba(0, 0, 0, 0.13);
     }
-    .edit {
-      position: absolute;
-      left: 0;
-      top: 0;
-      right: 0;
-      height: 65;
-      z-index: 3;
-      opacity: 1;
-    }
-
-    .input {
-      width:750;
-      padding-left:20;
-      height:50;
-      line-height:50;
-      font-size:20;
-      color:#fff;
-      font-weight:bold;
-      background-color:#1780F7;
-      outline:none;
-      border:none;
-    }
-
     .top-item {
       position: absolute;
       left: 0;
@@ -122,13 +90,145 @@
       transform-origin: bottom center;
     }
 
+    .icon {
+      position: absolute;
+      top: 0;
+      -webkit-transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0);
+      opacity: 0;
+      width: 63;
+      height: 63;
+    }
+    .check {
+      left: 0;
+    }
+    .cross {
+      right: 0;
+    }
+
   </style>
 
   <script>
+    var animation = require('@weex-module/animation');
+    var modal = require('@weex-module/modal');
+    var env = require('./include/env');
+    var rightBound = 65;
+    var directions = ['right', 'left'];
+    var actions = ['complete', 'delete'];
+    var operation = {
+      ok: 'ok',
+      cancel: 'cancel'
+    };
+    var direction, action;
+
     module.exports = {
       data: {
-        newItemState: null,
         collection: null
+      },
+      methods: {
+        getTransformOffset: function(dom) {
+          var offset = {
+            x: 0,
+            y: 0
+          };
+          var transform = (function() {
+            if (getComputedStyle) {
+              return getComputedStyle(dom)[env.transformProperty];
+            } else {
+              return dom.currentStyle[env.transformProperty];
+            }
+          })();
+          var matched;
+          var reg1 = new RegExp('^matrix3d'
+            + '\\((?:[-\\d.]+,\\s*){12}([-\\d.]+),'
+            + '\\s*([-\\d.]+)(?:,\\s*[-\\d.]+){2}\\)')
+          var reg2 = new RegExp('^matrix'
+            + '\\((?:[-\\d.]+,\\s*){4}([-\\d.]+),\\s*([-\\d.]+)\\)$')
+          if (transform !== 'none') {
+            if ((matched = transform.match(reg1) ||
+                transform.match(reg2))) {
+              offset.x = parseFloat(matched[1]) || 0
+              offset.y = parseFloat(matched[2]) || 0
+            }
+          }
+          return offset
+        },
+        horizontalpanmove(e, index) {
+          var tx = e.displacementX;
+          var o, image;
+          if (!this.collection[index].items.length) {
+            return;
+          }
+          // dragging to right
+          if (tx >= 0) {
+            direction = directions[0];
+            image = e.currentTarget.nextSibling;
+            if (tx <= rightBound) {
+              o = tx / rightBound;
+              image.style.opacity = o;
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            } else {
+              action = actions[0];
+              image.style[env.transformProperty] = 'translate3d(' + (tx - rightBound) + 'px, 0, 0)';
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            }
+          } else {
+          // dragging to left
+            direction = directions[1];
+            image = e.currentTarget.nextSibling.nextSibling;
+            if (Math.abs(tx) <= rightBound) {
+              o = Math.abs(tx) / rightBound;
+              image.style.opacity = o;
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            } else {
+              action = actions[1];
+              image.style[env.transformProperty] = 'translate3d(' + (tx + rightBound) + 'px, 0, 0)';
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            }
+          }
+        },
+        panend(e, index) {
+          var currentTarget = e.currentTarget;
+          var transform = this.getTransformOffset(currentTarget);
+          var image = transform.x >= 0 ? currentTarget.nextSibling : currentTarget.nextSibling.nextSibling;
+          // 动画
+          animation.transition(e.target, {
+            styles: {
+              transform: 'translate3d(0, 0, 0)'
+            },
+            duration: 0, //ms
+            timingFunction: 'ease',
+            delay: 0 //ms
+          }, () => {
+            if (image) {
+              image.style[env.transformProperty] = 'translate3d(0, 0, 0)';
+              image.style.opacity = 0;
+            }
+          });
+
+          if (action === actions[0]) {
+            modal.confirm({
+              message: 'Are you sure you want to complete all your items in this list?',
+              okTitle: operation.ok,
+              cancelTitle: operation.cancel
+            }, (e) => {
+              if (e === operation.ok) {
+                this.collection[index].items = [];
+              }
+            });
+          } else if (action === actions[1]) {
+            modal.confirm({
+              message: 'Are you sure you want to delete the entire list?',
+              okTitle: operation.ok,
+              cancelTitle: operation.cancel
+            }, (e) => {
+              if (e === operation.ok) {
+                this.collection.splice(index, 1);
+              }
+            });
+          }
+
+        }
       },
       ready: function() {
         console.log('collection combo ready');
@@ -139,21 +239,68 @@
 </we-element>
 
 <template>
-  <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend" ontap="tap">
-    <collection id="J_collection" collection="{{collections}}" new-item-state="{{newItemState}}"></collection>
-  </list>
+  <div>
+    <div if="{{newItemState}}" class="mask" ontouchstart="touchstart"></div>
+    <div if="{{newItemState}}" class="edit-item">
+      <div style="flex-direction:row;align-items:center;height:65;">
+        <input id="J_item_input" class="input" onblur="blur" onkeydown="keydown" placeholder="Input to create List" />
+      </div>
+    </div>
+    <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend">
+      <collection id="J_collection" collection="{{collections}}"></collection>
+    </list>
+  </div>
 </template>
 
 <style>
   .wrapper {
     position: absolute;
-    width: 100%;
     left: 0;
     top: 0;
     right: 0;
     bottom: 0;
+    z-index: 1;
     background: #000;
     overflow: hidden;
+  }
+  .mask {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    opacity: .15;
+    z-index: 2;
+    background: #000;
+    overflow: hidden;
+  }
+  .edit-item {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    z-index: 3;
+    opacity: 1;
+
+    height: 65;
+    line-height: 65;
+
+    color: #fff;
+    background-color: #1780F7;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: bold;
+  }
+  .input {
+    width:750;
+    padding-left:20;
+    height:50;
+    line-height:50;
+    font-size:20;
+    color:#fff;
+    font-weight:bold;
+    background-color:#1780F7;
+    outline:none;
+    border:none;
   }
 </style>
 
@@ -196,11 +343,12 @@ module.exports = {
     }]
   },
   methods: {
-    tap(e) {
-      console.log(e, this._itemInputEl);
-      if (triggerNewItemState) {
-        this.newItemState = triggerNewItemState = null;
-      }
+    touchstart(e) {
+      setTimeout(() => {
+        if (triggerNewItemState) {
+          this.newItemState = triggerNewItemState = null;
+        }
+      }, 0);
     },
     scroll(e) {
       if (e.scrollTop < 0) {
@@ -236,14 +384,41 @@ module.exports = {
         // 设置阴影效果
         this.newItemState = true;
       }
+    },
+    keydown(e) {
+      var value;
+      if (e.keyCode === 13) {
+        value = e.currentTarget.value.trim();
+        if (value) {
+          this.collections.unshift({
+            name: value,
+            items: []
+          });
+        }
+        if (triggerNewItemState) {
+          this.newItemState = triggerNewItemState = null;
+        }
+      }
+    },
+    blur(e) {
+      var value = e.currentTarget.value.trim();
+      if (value) {
+        this.collections.unshift({
+          name: value,
+          items: []
+        });
+      }
+      if (triggerNewItemState) {
+        this.newItemState = triggerNewItemState = null;
+      }
     }
   },
   ready() {
     this._collectionVm = this.$vm('J_collection');
     this._topItemEl = this._collectionVm.$el('J_top_item');
     this._topTitleEl = this._collectionVm.$el('J_top_title');
-    this._itemInputEl = this._collectionVm.$el('J_item_input');
-    console.log('index ready', this._topItemEl);
+    this._itemInputEl = this.$el('J_item_input');
+    console.log('index ready');
   }
 };
 </script>
