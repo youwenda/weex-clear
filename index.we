@@ -1,25 +1,29 @@
 <we-element name="collection">
   <template>
     <div>
-      <div id="J_top_item" class="item top-item" style="display:none;">
-        <div class="slider top-slider">
+      <div id="J_top_item" class="item top-item">
+        <div class="slider top-slider {{todoItems ? 'todo-slider' : ''}}">
           <div class="inner">
             <text id="J_top_title" class="title">Pull to Create List</text>
-            <text id="J_top_count" class="count">0</text>
           </div>
         </div>
-      </div>
-      <div if="{{!todoItems}}" class="item {{!items.length ? 'empty' : ''}}" repeat="{{collections}}">
-        <div class="slider" onhorizontalpanmove="horizontalpanmove($event,$index)" onpanend="panend($event,$index)" ontap="openTodoItems($event,$index)">
-          <div class="inner">
-            <text class="title">{{name}}</text>
-            <text class="count">{{items.length}}</text>
-          </div>
-        </div>
-        <image src="https://gw.alicdn.com/tps/TB1AGVDKFXXXXXbaXXXXXXXXXXX-124-124.png" class="icon check"></image>
-        <image src="https://gw.alicdn.com/tps/TB1jodTKFXXXXcZXpXXXXXXXXXX-124-124.png" class="icon cross"></image>
       </div>
 
+      <!--collection list item-->
+      <div if="{{!todoItems && collections}}" >
+        <div class="item {{!items.length ? 'empty' : ''}}" repeat="{{collections}}">
+          <div class="slider" onhorizontalpanmove="horizontalpanmove($event,$index)" onpanend="panend($event,$index)" ontap="openTodoItems($event,$index)">
+            <div class="inner">
+              <text class="title">{{name}}</text>
+              <text class="count">{{items.length}}</text>
+            </div>
+          </div>
+          <image src="https://gw.alicdn.com/tps/TB1AGVDKFXXXXXbaXXXXXXXXXXX-124-124.png" class="icon check"></image>
+          <image src="https://gw.alicdn.com/tps/TB1jodTKFXXXXcZXpXXXXXXXXXX-124-124.png" class="icon cross"></image>
+        </div>
+      </div>
+
+      <!--todo list items-->
       <div if="{{todoItems}}">
         <div class="item" repeat="{{todoItems}}">
           <div class="slider" style="background-color:{{'hsl(' + (353+$index*Math.min(70/todoItems.length,10)) + ',95%,' + ($index==0 ? '48%':'53%') + ')'}}">
@@ -90,6 +94,7 @@
       right: 0;
       z-index: 2;
       text-shadow: 0 1px 1px;
+      display: none;
 
       -webkit-perspective: 400;
       -webkit-perspective-origin: bottom center;
@@ -101,6 +106,10 @@
     .top-slider {
       -webkit-transform-origin: bottom center;
       transform-origin: bottom center;
+    }
+
+    .todo-slider {
+      background-color: #EB0017;
     }
 
     .icon {
@@ -140,33 +149,6 @@
         collections: null
       },
       methods: {
-        getTransformOffset: function(dom) {
-          var offset = {
-            x: 0,
-            y: 0
-          };
-          var transform = (function() {
-            if (getComputedStyle) {
-              return getComputedStyle(dom)[env.transformProperty];
-            } else {
-              return dom.currentStyle[env.transformProperty];
-            }
-          })();
-          var matched;
-          var reg1 = new RegExp('^matrix3d'
-            + '\\((?:[-\\d.]+,\\s*){12}([-\\d.]+),'
-            + '\\s*([-\\d.]+)(?:,\\s*[-\\d.]+){2}\\)')
-          var reg2 = new RegExp('^matrix'
-            + '\\((?:[-\\d.]+,\\s*){4}([-\\d.]+),\\s*([-\\d.]+)\\)$')
-          if (transform !== 'none') {
-            if ((matched = transform.match(reg1) ||
-                transform.match(reg2))) {
-              offset.x = parseFloat(matched[1]) || 0
-              offset.y = parseFloat(matched[2]) || 0
-            }
-          }
-          return offset
-        },
         openTodoItems(e, index) {
           this.todoItems = this.collections[index].items || [];
         },
@@ -206,21 +188,16 @@
         },
         panend(e, index) {
           var currentTarget = e.currentTarget;
-          var transform = this.getTransformOffset(currentTarget);
-          var image = transform.x >= 0 ? currentTarget.nextSibling : currentTarget.nextSibling.nextSibling;
-
-          if (!action && !direction) {
-            return;
-          }
+          var image = direction === directions[0] ? currentTarget.nextSibling : currentTarget.nextSibling.nextSibling;
 
           // 动画
           animation.transition(e.target, {
             styles: {
               transform: 'translate3d(0, 0, 0)'
             },
-            duration: 0, //ms
+            duration: 1.5e2,
             timingFunction: 'ease',
-            delay: 0 //ms
+            'transform-origin': 'center center',
           }, () => {
             if (image) {
               image.style[env.transformProperty] = 'translate3d(0, 0, 0)';
@@ -267,9 +244,9 @@
 <template>
   <div>
     <div if="{{newItemState}}" class="mask" ontouchstart="touchstart"></div>
-    <div if="{{newItemState}}" class="edit-item">
+    <div if="{{newItemState}}" class="edit-item {{newTodoItemState ? 'todo-edit-item' : ''}}">
       <div style="flex-direction:row;align-items:center;height:65;">
-        <input id="J_item_input" class="input" onblur="blur" onkeydown="keydown" placeholder="Input to create List" />
+        <input id="J_item_input" class="input {{newTodoItemState ? 'todo-input' : ''}}" onblur="blur" onkeydown="keydown" placeholder="Input to create List" />
       </div>
     </div>
     <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend">
@@ -328,6 +305,12 @@
     outline:none;
     border:none;
   }
+  .todo-edit-item {
+    background-color: #EB0017;
+  }
+  .todo-input {
+    background-color: #EB0017;
+  }
 </style>
 
 <script>
@@ -339,6 +322,7 @@ var triggerNewItemState;
 module.exports = {
   data: {
     newItemState: null,
+    newTodoItemState: null,
     collections: [{
       name: 'How to Use',
       items: [{
@@ -346,13 +330,9 @@ module.exports = {
       }, {
         name: 'Swipe to the left to delete'
       }, {
-        name: 'Tap and hold to pick me up'
-      }, {
         name: 'Pull down to create an item'
       }, {
         name: 'Pull down more to go back'
-      }, {
-        name: 'Pull up to clear'
       }]
     }, {
       name: 'This is a Demo',
@@ -383,7 +363,7 @@ module.exports = {
           this._topItemEl.setStyle('display', 'block');
         }
         var displacementY = Math.abs(e.scrollTop);
-        if (displacementY <= env.itemH) {
+        if (displacementY < env.itemH) {
           if (pastPullDownThreshold) {
             pastPullDownThreshold = false;
             this._topTitleEl.setAttr('value', 'Pull to create List');
