@@ -1,0 +1,617 @@
+<we-element name="collection">
+  <template>
+    <div>
+      <div id="J_top_item" class="item top-item">
+        <div class="slider top-slider {{todoState ? 'todo-slider' : ''}}">
+          <div class="inner">
+            <text id="J_top_title" class="title">Pull to Create List</text>
+          </div>
+        </div>
+      </div>
+
+      <!--collection list item-->
+      <div if="{{!todoState && collections}}" >
+        <div class="item {{!items.length ? 'empty' : ''}}" repeat="{{collections}}">
+          <div class="slider" onhorizontalpanmove="horizontalpanmove($event,$index)" onpanend="panend($event,$index)" ontap="openTodoItems($event,$index)">
+            <div class="inner">
+              <text class="title">{{name}}</text>
+              <text class="count">{{items.length}}</text>
+            </div>
+          </div>
+          <image src="https://gw.alicdn.com/tps/TB1AGVDKFXXXXXbaXXXXXXXXXXX-124-124.png" class="icon check"></image>
+          <image src="https://gw.alicdn.com/tps/TB1jodTKFXXXXcZXpXXXXXXXXXX-124-124.png" class="icon cross"></image>
+        </div>
+      </div>
+
+      <!--todo list items-->
+      <div if="{{todoItems && todoState}}">
+        <div class="item {{done ? 'done':''}}" repeat="{{todoItems}}">
+          <div class="slider" onhorizontalpanmove="todohorizontalpanmove($event,$index)" onpanend="todopanend($event,$index)" style="background-color:{{done ? '#000' : 'hsl(' + (353+$index*Math.min(70/todoItems.length,10)) + ',95%,' + ($index==0 ? '48%':'53%') + ')'}}" data-background-color="{{'hsl(' + (353+$index*Math.min(70/todoItems.length,10)) + ',95%,' + ($index==0 ? '48%':'53%') + ')'}}">
+            <div class="inner">
+              <div class="title">
+                <text style="font-size:20;">{{name}}</text>
+                <text class="line {{done ? 'done-line':''}}"></text>
+              </div>
+            </div>
+          </div>
+          <image src="https://gw.alicdn.com/tps/TB1AGVDKFXXXXXbaXXXXXXXXXXX-124-124.png" class="icon check"></image>
+          <image src="https://gw.alicdn.com/tps/TB1jodTKFXXXXcZXpXXXXXXXXXX-124-124.png" class="icon cross"></image>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <style>
+    .item {
+      height: 65;
+      line-height: 65;
+
+      color: #fff;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-weight: bold;
+
+      -webkit-transform-origin: center center;
+      transform-origin: center center;
+    }
+
+    .slider {
+      height: 65;
+      background-color: #1780F7;
+      position: relative;
+      z-index: 1;
+    }
+
+    .inner {
+      height: 65;
+
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .title {
+      position: absolute;
+      top: 0;
+      left: 15;
+      font-size: 20;
+    }
+
+    .count {
+      position: absolute;
+      width: 65;
+      height: 65;
+
+      right: 0;
+      top: -1px;
+      background-color: rgba(255, 255, 255, 0.15);
+      text-align: center;
+      font-size: 20;
+    }
+    .empty {
+      color: rgba(255, 255, 255, 0.5);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.13);
+    }
+    .done {
+      color: #666;
+    }
+    .top-item {
+      position: absolute;
+      left: 0;
+      top: -65;
+      right: 0;
+      z-index: 2;
+      text-shadow: 0 1px 1px;
+      display: none;
+
+      -webkit-perspective: 400;
+      -webkit-perspective-origin: bottom center;
+      perspective-origin: bottom center;
+      -webkit-transition: -webkit-transform opacity 0.15s ease
+      transition: transform opacity 0.15s ease;
+    }
+
+    .top-slider {
+      -webkit-transform-origin: bottom center;
+      transform-origin: bottom center;
+    }
+
+    .todo-slider {
+      background-color: #EB0017;
+
+      -webkit-transition: -webkit-transform background-color 0.15s ease, color 0.15s ease;
+      transition: transform background-color 0.15s ease, color 0.15s ease
+    }
+
+    .icon {
+      position: absolute;
+      top: 0;
+      -webkit-transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0);
+      opacity: 0;
+      width: 63;
+      height: 63;
+    }
+    .check {
+      left: 0;
+    }
+    .cross {
+      right: 0;
+    }
+
+    .line {
+      -webkit-transition: -webkit-transform width 0s linear, background-color 0.15s ease;
+      transition: transform width 0s linear, background-color 0.15s ease;
+      position: absolute;
+      height: 2px;
+      left: 0;
+      bottom: 29px;
+      width: 0%;
+      background-color: #fff;
+    }
+    .done-line {
+      background-color: #666;
+    }
+
+  </style>
+
+  <script>
+    var animation = require('@weex-module/animation');
+    var modal = require('@weex-module/modal');
+    var env = require('./include/env');
+    var rightBound = 65;
+    var directions = ['right', 'left'];
+    var actions = ['complete', 'delete'];
+    var operation = {
+      ok: 'ok',
+      cancel: 'cancel'
+    };
+    var direction, action;
+
+    module.exports = {
+      data: {
+        todoState: null,
+        todoItems: null,
+        collections: null
+      },
+      methods: {
+        addTodoItems: function(item) {
+          if (this.todoItems) {
+            item.done = false;
+            this.$dispatch('addTodoItems', item);
+            this.todoItems.unshift(item);
+          }
+        },
+        openTodoItems: function(e, index) {
+          var items = this.collections[index].items || [];
+          this.todoItems = items.map(function(v) {
+            v.done = false;
+            return v;
+          });
+          this.todoState = true;
+          this.$dispatch('newTodoItemState', {
+            currentIndex: index
+          });
+        },
+        closeTodoItems: function() {
+          this.todoState = false;
+        },
+        horizontalpanmove: function(e, index) {
+          var tx = e.displacementX;
+          var o, image;
+          if (!this.collections[index].items.length) {
+            return;
+          }
+          // dragging to right
+          if (tx >= 0) {
+            direction = directions[0];
+            image = e.currentTarget.nextSibling;
+            if (tx <= rightBound) {
+              action = null;
+              o = tx / rightBound;
+              image.style.opacity = o;
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            } else {
+              action = actions[0];
+              image.style[env.transformProperty] = 'translate3d(' + (tx - rightBound) + 'px, 0, 0)';
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            }
+          } else {
+          // dragging to left
+            direction = directions[1];
+            image = e.currentTarget.nextSibling.nextSibling;
+            if (Math.abs(tx) <= rightBound) {
+              action = null;
+              o = Math.abs(tx) / rightBound;
+              image.style.opacity = o;
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            } else {
+              action = actions[1];
+              image.style[env.transformProperty] = 'translate3d(' + (tx + rightBound) + 'px, 0, 0)';
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            }
+          }
+        },
+        panend: function(e, index) {
+          var me = this;
+          var currentTarget = e.currentTarget;
+          var image = direction === directions[0] ? currentTarget.nextSibling : currentTarget.nextSibling.nextSibling;
+
+          // 动画
+          animation.transition(e.target, {
+            styles: {
+              transform: 'translate3d(0, 0, 0)'
+            },
+            duration: 1.5e2,
+            timingFunction: 'ease',
+            'transform-origin': 'center center',
+          }, function() {
+            if (image) {
+              image.style[env.transformProperty] = 'translate3d(0, 0, 0)';
+              image.style.opacity = 0;
+            }
+          });
+
+          if (action === actions[0]) {
+            action = null;
+            direction = null;
+            modal.confirm({
+              message: 'Are you sure you want to complete all your items in this list?',
+              okTitle: operation.ok,
+              cancelTitle: operation.cancel
+            }, function(e) {
+              if (e === operation.ok) {
+                me.collections[index].items = [];
+              }
+            });
+          } else if (action === actions[1]) {
+            action = null;
+            direction = null;
+            modal.confirm({
+              message: 'Are you sure you want to delete the entire list?',
+              okTitle: operation.ok,
+              cancelTitle: operation.cancel
+            }, function(e) {
+              if (e === operation.ok) {
+                me.collections.splice(index, 1);
+              }
+            });
+          }
+
+        },
+        todohorizontalpanmove: function(e, index) {
+          var tx = e.displacementX;
+          var w = (Math.min(1, Math.max(0, tx / env.itemH)) * 100).toFixed(2);
+          var line = e.currentTarget.children[0].children[0].children[1];
+          var backgroundColor = e.target.attr.dataBackgroundColor;
+          var o, image;
+
+          line.style.width = (this.todoItems[index].done ? 100 - w : w) + '%';
+
+          // dragging to right
+          if (tx >= 0) {
+            direction = directions[0];
+            image = e.currentTarget.nextSibling;
+            if (tx <= rightBound) {
+              action = null;
+              o = tx / rightBound;
+              image.style.opacity = o;
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+              if (!this.todoItems[index].done) {
+                e.target.setStyle('backgroundColor', backgroundColor);
+              }
+
+            } else {
+              action = actions[0];
+              image.style[env.transformProperty] = 'translate3d(' + (tx - rightBound) + 'px, 0, 0)';
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+              if (!this.todoItems[index].done) {
+                e.target.setStyle('backgroundColor', '#0A3');
+              } else {
+                e.target.setStyle('backgroundColor', backgroundColor);
+              }
+            }
+          } else {
+          // dragging to left
+            direction = directions[1];
+            image = e.currentTarget.nextSibling.nextSibling;
+            if (Math.abs(tx) <= rightBound) {
+              action = null;
+              o = Math.abs(tx) / rightBound;
+              image.style.opacity = o;
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            } else {
+              action = actions[1];
+              image.style[env.transformProperty] = 'translate3d(' + (tx + rightBound) + 'px, 0, 0)';
+              e.currentTarget.style[env.transformProperty] = 'translate3d(' + tx + 'px, 0, 0)';
+            }
+          }
+        },
+        todopanend: function(e, index) {
+          var currentTarget = e.currentTarget;
+          var line = currentTarget.children[0].children[0].children[1];
+          var image = direction === directions[0] ? currentTarget.nextSibling : currentTarget.nextSibling.nextSibling;
+
+          // 动画
+          animation.transition(e.target, {
+            styles: {
+              transform: 'translate3d(0, 0, 0)'
+            },
+            duration: 1.5e2,
+            timingFunction: 'ease',
+            'transform-origin': 'center center',
+          }, function() {
+            if (image) {
+              image.style[env.transformProperty] = 'translate3d(0, 0, 0)';
+              image.style.opacity = 0;
+            }
+          });
+
+          // completed
+          if (action === actions[0]) {
+            action = null;
+            direction = null;
+            this.todoItems[index].done ^= 1;
+            if (this.todoItems[index].done) {
+              // done insert end
+              this.todoItems.push(this.todoItems.splice(index, 1)[0]);
+            } else {
+              // cancel done insert head
+              this.todoItems.unshift(this.todoItems.splice(index, 1)[0]);
+            }
+          // deleted
+          } else if (action === actions[1]) {
+            action = null;
+            direction = null;
+            this.todoItems.splice(index, 1);
+          } else if (!this.todoItems[index].done) {
+            line.style.width = 0;
+          } else {
+            line.style.width = '100%';
+            currentTarget.style.backgroundColor = '#000';
+          }
+
+        }
+      },
+      ready: function() {
+      }
+    }
+  </script>
+
+</we-element>
+
+<template>
+  <div>
+    <div if="{{newItemState}}" class="mask" ontouchstart="touchstart"></div>
+    <div class="edit-item {{newItemState ? 'show':''}} {{newTodoItemState ? 'todo-edit-item':''}}">
+      <div style="flex-direction:row;align-items:center;height:65;">
+        <input id="J_item_input" class="input {{newTodoItemState ? 'todo-input' : ''}}" onblur="blur" placeholder="Input to create List" autofocus="{{newItemState?true:false}}" />
+      </div>
+    </div>
+    <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend">
+      <collection id="J_collection" collections="{{collections}}"></collection>
+    </list>
+    <div id="J_bottom_item" class="bottom-item">
+      <text class="bottom-item-title">Back to home</text>
+    </div>
+  </div>
+</template>
+
+<style>
+  .show {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+  }
+  .wrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    background: #000;
+    overflow: hidden;
+  }
+  .mask {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    opacity: .15;
+    z-index: 2;
+    background: #000;
+    overflow: hidden;
+  }
+  .edit-item {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    z-index: 3;
+    opacity: 1;
+
+    height: 65;
+    line-height: 65;
+
+    color: #fff;
+    background-color: #1780F7;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    display: none;
+  }
+  .input {
+    width:750;
+    padding-left:20;
+    height:50;
+    line-height:50;
+    font-size:20;
+    color:#fff;
+    font-weight:bold;
+    background-color:#1780F7;
+    outline:none;
+    border:none;
+  }
+  .todo-edit-item {
+    background-color: #EB0017;
+  }
+  .todo-input {
+    background-color: #EB0017;
+  }
+  .bottom-item {
+    position: absolute;
+    left: 0;
+    bottom: -65;
+    right: 0;
+    z-index: 3;
+    opacity: 1;
+    height: 65;
+    line-height: 65;
+    display: none;
+
+    -webkit-perspective: 400;
+    -webkit-perspective-origin: bottom center;
+    perspective-origin: bottom center;
+    -webkit-transition: -webkit-transform opacity 0.15s ease
+    transition: transform opacity 0.15s ease;
+  }
+  .bottom-item-title {
+    text-align: center;
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    font-size: 26;
+  }
+</style>
+
+<script>
+var env = require('./include/env');
+var pullingDown, pullingUp;
+var pastPullDownThreshold, pastPullUpThreshold;
+var triggerNewItemState, triggerBack;
+
+module.exports = {
+  data: {
+    newItemState: null,
+    newTodoItemState: null,
+    collections: [{
+      name: 'How to Use',
+      items: [{
+        done: false,
+        name: 'Swipe to the right to complete'
+      }, {
+        done: false,
+        name: 'Swipe to the left to delete'
+      }, {
+        done: false,
+        name: 'Pull down to create an item'
+      }, {
+        done: false,
+        name: 'Pull up to go back home'
+      }]
+    }]
+  },
+  methods: {
+    touchstart: function(e) {
+      if (triggerNewItemState) {
+        this.newItemState = triggerNewItemState = null;
+      }
+    },
+    scroll: function(e) {
+      var displacementY = Math.abs(e.scrollTop);
+      if (e.scrollTop < 0) {
+        if (!pullingDown) {
+          pullingDown = true;
+          this._topItemEl.setStyle('display', 'block');
+        }
+        // displacementY = Math.abs(e.scrollTop);
+        if (displacementY < env.itemH) {
+          if (pastPullDownThreshold) {
+            pastPullDownThreshold = false;
+            this._topTitleEl.setAttr('value', 'Pull to create List');
+          }
+          var pct = displacementY / env.itemH;
+          var r = Math.max(0, (1 - pct) * 90);
+          var slider = this._topItemEl.children[0];
+          slider.setStyle(env.transformProperty, 'rotateX(' + r + 'deg)');
+          slider.setStyle('opacity', pct / 2 + .5);
+        } else {
+          pastPullDownThreshold = true;
+          triggerNewItemState = true;
+          this._topTitleEl.setAttr('value', 'Release to Create List');
+        }
+      } else if (this.newTodoItemState) {
+        if (!pullingUp) {
+          pullingDown = true;
+          this._bottomItemEl.setStyle('display', 'block');
+        }
+
+        if (displacementY < env.itemH) {
+          if (pastPullUpThreshold) {
+            pastPullUpThreshold = false;
+          }
+
+          this._bottomItemEl.setStyle(env.transformProperty, 'translate3d(0,' + (-displacementY) + 'px, 0)');
+
+        } else {
+          pastPullDownThreshold = true;
+          triggerBack = true;
+        }
+
+      }
+
+    },
+    scrollend: function(e) {
+      if (pullingDown) {
+        pullingDown = false;
+        this._topItemEl.setStyle('display', 'none');
+      }
+      if (triggerNewItemState) {
+        // 设置阴影效果
+        this.newItemState = true;
+        this._itemInputEl.setAttr('autofocus', true);
+      }
+      if (triggerBack && this._collectionVm) {
+        triggerBack = false;
+        this.newItemState = null;
+        this.newTodoItemState = null;
+        this._collectionVm.closeTodoItems();
+      }
+    },
+    blur: function(e) {
+      var value = e.currentTarget.value.trim();
+      if (value) {
+        if (this.newTodoItemState && this._collectionVm) {
+          this._collectionVm.addTodoItems({
+            name: value
+          });
+        } else {
+          this.collections.unshift({
+            name: value,
+            items: []
+          });
+        }
+        e.currentTarget.value = '';
+      }
+      if (triggerNewItemState) {
+        this.newItemState = triggerNewItemState = null;
+      }
+    }
+  },
+  created: function() {
+    var me = this;
+    this.$on('newTodoItemState', function(e) {
+      me.newTodoItemState = true;
+      me.currentIndex = e.detail.currentIndex;
+    });
+    this.$on('addTodoItems', function(e) {
+      me.collections[me.currentIndex].items.unshift(e.detail);
+    });
+  },
+  ready: function() {
+    this._collectionVm = this.$vm('J_collection');
+    this._topItemEl = this._collectionVm.$el('J_top_item');
+    this._topTitleEl = this._collectionVm.$el('J_top_title');
+    this._itemInputEl = this.$el('J_item_input');
+    this._bottomItemEl = this.$el('J_bottom_item');
+  }
+};
+</script>
