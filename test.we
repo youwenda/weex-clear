@@ -155,7 +155,11 @@
   <script>
     var animation = require('@weex-module/animation');
     var modal = require('@weex-module/modal');
-    var env = require('./include/env');
+    var env = {
+      itemH: 59,
+      transformProperty: 'webkitTransform',
+      transitionEndEvent: 'webkitTransitionEnd'
+    };
     var rightBound = 65;
     var directions = ['right', 'left'];
     var actions = ['complete', 'delete'];
@@ -483,7 +487,14 @@
 </style>
 
 <script>
-var env = require('./include/env');
+// var env = require('./include/env');
+
+var env = {
+  itemH: 59,
+  transformProperty: 'webkitTransform',
+  transitionEndEvent: 'webkitTransitionEnd'
+};
+
 var pullingDown, pullingUp;
 var pastPullDownThreshold, pastPullUpThreshold;
 var triggerNewItemState, triggerBack;
