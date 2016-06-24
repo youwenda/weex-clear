@@ -117,8 +117,8 @@
     .todo-slider {
       background-color: #EB0017;
 
-      -webkit-transition: -webkit-transform background-color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86), color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86);
-      transition: transform background-color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86), color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86)
+      -webkit-transition: -webkit-transform background-color 0.15s ease, color 0.15s ease;
+      transition: transform background-color 0.15s ease, color 0.15s ease
     }
 
     .icon {
@@ -138,8 +138,8 @@
     }
 
     .line {
-      -webkit-transition: -webkit-transform width 0s linear, background-color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86);
-      transition: transform width 0s linear, background-color 0.15s cubic-bezier(0.67, 0.18, 0.3, 0.86);
+      -webkit-transition: -webkit-transform width 0s linear, background-color 0.15s ease;
+      transition: transform width 0s linear, background-color 0.15s ease;
       position: absolute;
       height: 2px;
       left: 0;
@@ -172,13 +172,18 @@
         collections: null
       },
       methods: {
+        addTodoItems(item) {
+          if (this.todoItems) {
+            item.done = false;
+            this.todoItems.unshift(item);
+          }
+        },
         openTodoItems(e, index) {
           var items = this.collections[index].items || [];
           this.todoItems = items.map((v) => {
             v.done = false;
             return v;
           });
-          console.log(this.todoItems);
           this.$dispatch('newTodoItemState');
         },
         horizontalpanmove(e, index) {
@@ -335,18 +340,24 @@
           if (action === actions[0]) {
             action = null;
             direction = null;
-
             this.todoItems[index].done ^= 1;
-            console.log(this.todoItems);
-
+            if (this.todoItems[index].done) {
+              // done insert end
+              this.todoItems.push(this.todoItems.splice(index, 1)[0]);
+            } else {
+              // cancel done insert head
+              this.todoItems.unshift(this.todoItems.splice(index, 1)[0]);
+            }
           // deleted
           } else if (action === actions[1]) {
             action = null;
             direction = null;
+            this.todoItems.splice(index, 1);
           } else if (!this.todoItems[index].done) {
             line.style.width = 0;
           } else {
-            line.style.width = '100%;'
+            line.style.width = '100%';
+            currentTarget.style.backgroundColor = '#000';
           }
 
         }
@@ -521,10 +532,17 @@ module.exports = {
     blur(e) {
       var value = e.currentTarget.value.trim();
       if (value) {
-        this.collections.unshift({
-          name: value,
-          items: []
-        });
+        if (this.newTodoItemState && this._collectionVm) {
+          this._collectionVm.addTodoItems({
+            name: value
+          });
+          console.log(this.collections);
+        } else {
+          this.collections.unshift({
+            name: value,
+            items: []
+          });
+        }
         e.currentTarget.value = '';
         e.currentTarget.removeAttribute('autofocus');
       }
