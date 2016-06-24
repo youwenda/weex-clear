@@ -38,7 +38,6 @@
           <image src="https://gw.alicdn.com/tps/TB1jodTKFXXXXcZXpXXXXXXXXXX-124-124.png" class="icon cross"></image>
         </div>
       </div>
-
     </div>
   </template>
 
@@ -384,6 +383,9 @@
     <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend">
       <collection id="J_collection" collections="{{collections}}"></collection>
     </list>
+    <div id="J_bottom_item" class="bottom-item">
+      <text class="bottom-item-title">Back to home</text>
+    </div>
   </div>
 </template>
 
@@ -449,12 +451,36 @@
   .todo-input {
     background-color: #EB0017;
   }
+  .bottom-item {
+    position: absolute;
+    left: 0;
+    bottom: -65;
+    right: 0;
+    z-index: 3;
+    opacity: 1;
+    height: 65;
+    line-height: 65;
+    display: none;
+
+    -webkit-perspective: 400;
+    -webkit-perspective-origin: bottom center;
+    perspective-origin: bottom center;
+    -webkit-transition: -webkit-transform opacity 0.15s ease
+    transition: transform opacity 0.15s ease;
+  }
+  .bottom-item-title {
+    text-align: center;
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    font-size: 26;
+  }
 </style>
 
 <script>
 var env = require('./include/env');
-var pullingDown;
-var pastPullDownThreshold;
+var pullingDown, pullingUp;
+var pastPullDownThreshold, pastPullUpThreshold;
 var triggerNewItemState;
 
 module.exports = {
@@ -485,12 +511,13 @@ module.exports = {
       }
     },
     scroll(e) {
+      var displacementY = Math.abs(e.scrollTop);
       if (e.scrollTop < 0) {
         if (!pullingDown) {
           pullingDown = true;
           this._topItemEl.setStyle('display', 'block');
         }
-        var displacementY = Math.abs(e.scrollTop);
+        // displacementY = Math.abs(e.scrollTop);
         if (displacementY < env.itemH) {
           if (pastPullDownThreshold) {
             pastPullDownThreshold = false;
@@ -505,6 +532,11 @@ module.exports = {
           pastPullDownThreshold = true;
           triggerNewItemState = true;
           this._topTitleEl.setAttr('value', 'Release to Create List');
+        }
+      } else if (this.newTodoItemState) {
+        if (!pullingUp) {
+          pullingDown = true;
+          this._bottomItemEl.setStyle('display', 'block');
         }
       }
 
@@ -552,6 +584,7 @@ module.exports = {
   ready() {
     this._collectionVm = this.$vm('J_collection');
     this._topItemEl = this._collectionVm.$el('J_top_item');
+    this._bottomItemEl = this._collectionVm.$el('J_bottom_item');
     this._topTitleEl = this._collectionVm.$el('J_top_title');
     this._itemInputEl = this.$el('J_item_input');
     console.log('index ready', this._itemInputEl);
