@@ -2,7 +2,7 @@
   <template>
     <div>
       <div id="J_top_item" class="item top-item">
-        <div class="slider top-slider {{todoItems ? 'todo-slider' : ''}}">
+        <div class="slider top-slider {{todoState ? 'todo-slider' : ''}}">
           <div class="inner">
             <text id="J_top_title" class="title">Pull to Create List</text>
           </div>
@@ -370,7 +370,6 @@
         }
       },
       ready() {
-        console.log('collections combo ready');
       }
     }
   </script>
@@ -571,6 +570,8 @@ module.exports = {
       }
       if (triggerBack && this._collectionVm) {
         triggerBack = false;
+        this.newItemState = null;
+        this.newTodoItemState = null;
         this._collectionVm.closeTodoItems();
       }
     },
@@ -609,8 +610,6 @@ module.exports = {
     this._topTitleEl = this._collectionVm.$el('J_top_title');
     this._itemInputEl = this.$el('J_item_input');
     this._bottomItemEl = this.$el('J_bottom_item');
-
-    console.log('index ready', this._itemInputEl);
   }
 };
 </script>
