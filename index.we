@@ -175,6 +175,7 @@
         addTodoItems(item) {
           if (this.todoItems) {
             item.done = false;
+            this.$dispatch('addTodoItems', item);
             this.todoItems.unshift(item);
           }
         },
@@ -184,7 +185,9 @@
             v.done = false;
             return v;
           });
-          this.$dispatch('newTodoItemState');
+          this.$dispatch('newTodoItemState', {
+            currentIndex: index
+          });
         },
         horizontalpanmove(e, index) {
           var tx = e.displacementX;
@@ -536,7 +539,6 @@ module.exports = {
           this._collectionVm.addTodoItems({
             name: value
           });
-          console.log(this.collections);
         } else {
           this.collections.unshift({
             name: value,
@@ -552,9 +554,13 @@ module.exports = {
     }
   },
   created() {
-    this.$on('newTodoItemState', () => {
+    this.$on('newTodoItemState', (e) => {
       this.newTodoItemState = true;
-    })
+      this.currentIndex = e.detail.currentIndex;
+    });
+    this.$on('addTodoItems', (e) => {
+      this.collections[this.currentIndex].items.unshift(e.detail);
+    });
   },
   ready() {
     this._collectionVm = this.$vm('J_collection');
