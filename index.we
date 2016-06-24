@@ -378,7 +378,7 @@
     <div if="{{newItemState}}" class="mask" ontouchstart="touchstart"></div>
     <div class="edit-item {{newItemState ? 'show':''}} {{newTodoItemState ? 'todo-edit-item':''}}">
       <div style="flex-direction:row;align-items:center;height:65;">
-        <input id="J_item_input" class="input {{newTodoItemState ? 'todo-input' : ''}}" onblur="blur" placeholder="Input to create List" autofocus="autofocus" />
+        <input id="J_item_input" class="input {{newTodoItemState ? 'todo-input' : ''}}" onblur="blur" placeholder="Input to create List" autofocus="{{newItemState?true:false}}" />
       </div>
     </div>
     <list id="J_wrapper" class="wrapper" onscroll="scroll" onscrollend="scrollend">
@@ -474,20 +474,8 @@ module.exports = {
         name: 'Pull down to create an item'
       }, {
         done: false,
-        name: 'Pull down more to go back'
+        name: 'Pull up to go back home'
       }]
-    }, {
-      name: 'This is a Demo',
-      items: []
-    }, {
-      name: 'Test',
-      items: []
-    }, {
-      name: 'This is a Demo',
-      items: []
-    }, {
-      name: 'Test',
-      items: []
     }]
   },
   methods: {
@@ -546,7 +534,6 @@ module.exports = {
           });
         }
         e.currentTarget.value = '';
-        e.currentTarget.removeAttribute('autofocus');
       }
       if (triggerNewItemState) {
         this.newItemState = triggerNewItemState = null;
